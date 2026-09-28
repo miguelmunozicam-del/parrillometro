@@ -11,8 +11,10 @@ Nació de una hoja de Excel usada en barbacoas reales y se ha convertido en una 
 - **Invitados por tipo**: adultos, adolescentes y niños comen y beben distinto. También cuenta a los vegetarianos.
 - **Preguntas en lenguaje normal**: *"¿Cuánto beben?" → Tranquilos · Normal · De celebración · Fiestas del pueblo.*
 - **Mezcla cerveza / vino** con un deslizador.
-- **Propuesta de carne guiada**: eliges presupuesto (económico, medio, premium), estilo (parrillada española, americana o un poco de todo) y extras (ibéricos, vacuno, pollo, brochetas, cordero, algo de mar). La app propone una parrilla y reparte los kilos.
-- **Catálogo editable**: quita lo que no quieras o añade cualquiera de los 25 cortes del catálogo; el reparto se recalcula solo.
+- **Propuesta de carne con criterio de asador**: eliges presupuesto, estilo y extras, y la app arma el menú por papeles: un plato principal (chuletón, cordero, ibérico…) que se lleva la mitad de la carne, secundarios y picoteo. Tiene en cuenta el hueso y la merma de cada corte, el tamaño del grupo, los niños y la duración.
+- **Tú mandas**: marca con la estrella otro plato principal o quítalo, y quita o añade cortes de un catálogo de 25; los kilos se reparten solos.
+- **Acompañamientos de temporada**: patatas, pimientos, escalivada, setas, mazorcas… propuestos según el estilo y la época del año (se deduce de la fecha de la barbacoa). Con dos o más de brasa, la carne baja un 10 %.
+- **Aperitivo, salsas y carbón** calculados según el menú (alioli, chimichurri si hay vacuno, salsas americanas…).
 - **Lista con formato ticket**, agrupada por secciones del súper, con coste estimado total y por adulto.
 - **Comparar precios**: toca una línea para ajustar su precio o abrir la búsqueda de ese producto en Mercadona, Carrefour, Alcampo, Amazon Fresh o Dia.
 - **Aviso de exceso**: si las respuestas dan más de 10 consumiciones por adulto (fiestas del pueblo + hasta que nos echen), la lista lo advierte.
@@ -50,8 +52,10 @@ Para añadir un corte nuevo: créalo en `productos`, añádelo a `carnes` con su
 
 ## Cómo calcula
 
+Las reglas están explicadas en el *Manual del Parrillómetro* (papeles, cantidades, catálogo de cortes y guarniciones). Resumen:
+
 - **Comensales equivalentes** = adultos + 0,75 × adolescentes + 0,4 × niños (los vegetarianos se descuentan de la carne).
-- **Carne** = comensales × 0,4 kg × apetito × duración, repartida entre los cortes elegidos según su peso relativo. La carne al peso se redondea al cuarto de kilo; la que va en envase, al envase completo.
+- **Carne** = comensales × 0,4 kg × apetito × duración (−10 % con dos o más guarniciones de brasa). Se reparte por papeles: con plato principal 50 % principal · 35 % secundarios · 15 % picoteo; sin él, 78 % secundarios · 22 % picoteo. Los niños no cuentan para el plato principal. Cada corte se ajusta por su rendimiento (hueso y merma) y se redondea al cuarto de kilo o al envase.
 - **Alcohol** = adultos que beben × 5 consumiciones × sed × duración, repartido entre cerveza (1 lata de 33 cl) y vino (5 copas por botella).
 - **Refrescos, agua y hielo** escalan con las personas, la duración y el calor.
 - **Pan de hamburguesa, pan de perrito y queso** se calculan a partir de las unidades compradas.

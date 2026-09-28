@@ -284,3 +284,40 @@ html { scroll-behavior: smooth; }
 @media print { .save, .hist { display: none !important; } }
 #btnGuardar { grid-column: 1 / -1; order: -1; }
 .btn:disabled { opacity: .6; cursor: default; }
+
+/* ---------- v2: fecha, protagonista, guarniciones ---------- */
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.when { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; }
+.when input {
+  font: 600 1rem var(--f-body); color: var(--ink); background: var(--surface);
+  border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; min-height: 44px;
+}
+.when-read { margin: 0; color: var(--muted); font-size: .92rem; }
+.when-read b { color: var(--ink); font-weight: 600; }
+.q-note { margin: -4px 0 12px; color: var(--muted); font-size: .88rem; }
+.linkish {
+  background: none; border: 0; padding: 0; font: inherit; color: var(--ink); text-decoration: underline;
+  text-underline-offset: 2px; cursor: pointer;
+}
+.picked-list li { gap: 6px; }
+.pk-star {
+  flex: none; width: 34px; height: 34px; border-radius: 8px; border: 1px solid transparent; background: transparent;
+  color: var(--muted); font-size: 1.15rem; line-height: 1; cursor: pointer;
+}
+.pk-star:hover { border-color: var(--line); color: var(--ink); }
+.pk-star[aria-pressed="true"] { color: var(--accent); }
+.picked-list li.is-main { border-color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
+.pk-body { flex: 1 1 auto; min-width: 0; }
+.pk-tag {
+  display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 999px; font: 600 .68rem var(--f-body);
+  letter-spacing: .04em; text-transform: uppercase; vertical-align: 2px; background: var(--accent-soft); color: var(--ink);
+}
+.pk-tag.main { background: var(--accent); color: var(--accent-ink); }
+.toggles.guarn .toggle { display: inline-flex; flex-direction: column; align-items: flex-start; border-radius: 12px; padding: 8px 14px; }
+.toggles.guarn .toggle small { font: 400 .75rem var(--f-mono); color: var(--muted); }
+.toggles.guarn .toggle[aria-pressed="true"] small { color: var(--surface); opacity: .8; }
+.toggles.guarn .toggle[aria-pressed="true"]::before { content: none; }
+.t-consejo { margin-top: 10px; padding: 8px 12px; border: 1px dashed var(--muted); border-radius: 8px; font-size: .8rem; line-height: 1.45; }
+.t-consejo b { letter-spacing: .12em; font-size: .74rem; font-weight: 600; }
+.t-consejo p { margin: 2px 0 0; }
+@media print { .t-consejo { border-color: #000; } }

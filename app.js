@@ -1,17 +1,24 @@
 /* Parrillómetro — interfaz */
 (function () {
   const cfg = window.PARRILLOMETRO_CONFIG;
-  const { calcular, proponerCarnes } = window.Parrillometro;
+  const { calcular, proponerCarnes, sugerirMezcla, maxProtagonistas } = window.Parrillometro;
   const $ = (sel, el = document) => el.querySelector(sel);
   const $$ = (sel, el = document) => Array.from(el.querySelectorAll(sel));
   const KEY = 'parrillometro.v1';               // barbacoa en curso
   const KEY_HIST = 'parrillometro.historial.v1';  // barbacoas guardadas
+
+  const fechaHoyISO = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 10); };
 
   // ---------- Estado ----------
   const inicial = () => {
     const s = JSON.parse(JSON.stringify(cfg.ejemplo));
     s.carnes = proponerCarnes(s, cfg);
     s.precios = {};
+    s.fecha = s.fecha || fechaHoyISO();
+    s.protagonistas = null;   // null = la app elige
+    s.guarniciones = null;    // null = la app propone
+    s.carnesManual = false;   // true cuando el usuario toca la lista de carnes
+    s.pctManual = false;      // true cuando el usuario mueve el deslizador
     return s;
   };
   // Todo se guarda solo en el navegador de quien usa la app (localStorage).
@@ -71,6 +78,7 @@
       const b = e.target.closest('.chip'); if (!b) return;
       state[field] = b.dataset.v;
       if (field === 'presupuesto' || field === 'estilo') rehacerPropuesta();
+      if (field === 'duracion') { state.carnesManual = false; }
       syncChips(); actualizar();
     });
     // Flechas para moverse dentro del grupo
@@ -102,16 +110,51 @@
 
   // ---------- Mezcla cerveza / vino ----------
   const slider = $('#pctVino');
-  slider.addEventListener('input', () => { state.pctCerveza = 100 - Number(slider.value); pintarMezcla(); actualizar(); });
+  slider.addEventListener('input', () => { state.pctCerveza = 100 - Number(slider.value); state.pctManual = true; actualizar(); });
+  $('#btnMezcla').addEventListener('click', () => { state.pctManual = false; actualizar(); });
   function pintarMezcla() {
     const c = state.pctCerveza;
-    $('#mixRead').textContent = c === 100 ? 'Solo cerveza' : c === 0 ? 'Solo vino' : `${c} % cerveza · ${100 - c} % vino`;
+    slider.value = 100 - c;
+    const sug = sugerirMezcla(state, cfg);
+    $('#mixRead').textContent = (c === 100 ? 'Solo cerveza' : c === 0 ? 'Solo vino' : `${c} % cerveza · ${100 - c} % vino`) +
+      (c === sug ? ' · sugerido para este menú' : '');
+    const b = $('#btnMezcla');
+    b.hidden = c === sug;
+    b.textContent = `Usar la sugerencia (${sug} % cerveza)`;
   }
 
   // ---------- Checks ----------
-  ['carbon', 'menaje'].forEach((id) => {
+  ['carbon', 'menaje', 'aperitivo'].forEach((id) => {
     $('#' + id).addEventListener('change', (e) => { state[id] = e.target.checked; actualizar(); });
   });
+
+  // ---------- Fecha ----------
+  $('#fecha').addEventListener('change', (e) => { state.fecha = e.target.value || fechaHoyISO(); actualizar(); });
+  function pintarFecha(r) {
+    const t = cfg.temporadas.find((x) => x.id === r.temporada);
+    $('#temporadaRead').innerHTML = `Temporada: <b>${esc(t ? t.nombre : '')}</b>. La usamos para proponer la verdura.`;
+  }
+
+  // ---------- Guarniciones ----------
+  $('#guarn').innerHTML = cfg.guarniciones.map((g) =>
+    `<button type="button" class="toggle" data-v="${g.id}" aria-pressed="false">${esc(cfg.productos[g.id].nombre)}<small data-gq="${g.id}"></small></button>`).join('');
+  $('#guarn').addEventListener('click', (e) => {
+    const b = e.target.closest('.toggle'); if (!b) return;
+    const actual = new Set(ultimo.guarniciones);
+    actual.has(b.dataset.v) ? actual.delete(b.dataset.v) : actual.add(b.dataset.v);
+    state.guarniciones = cfg.guarniciones.map((g) => g.id).filter((id) => actual.has(id));
+    actualizar();
+  });
+  function pintarGuarniciones(r) {
+    const porId = Object.fromEntries(r.lineas.map((l) => [l.id, l]));
+    $$('#guarn .toggle').forEach((b) => b.setAttribute('aria-pressed', r.guarniciones.includes(b.dataset.v)));
+    $$('#guarn [data-gq]').forEach((sm) => { const l = porId[sm.dataset.gq]; sm.textContent = l ? textoCantidad(l) : ''; });
+    const t = cfg.temporadas.find((x) => x.id === r.temporada);
+    const est = cfg.estilo.find((x) => x.id === state.estilo);
+    $('#guarnNote').textContent = state.guarniciones
+      ? 'Tu selección. Con dos o más de brasa, la carne baja un 10 % y cada guarnición se ajusta.'
+      : `Propuesta para ${est ? est.label.toLowerCase() : 'tu barbacoa'} en ${t ? t.nombre : 'esta época'}. Marca o desmarca lo que quieras.`;
+  }
 
   // ---------- Carne: extras, propuesta y catálogo ----------
   $('#extras').innerHTML = cfg.extras.map((x) =>
@@ -126,7 +169,9 @@
   function syncExtras() {
     $$('#extras .toggle').forEach((b) => b.setAttribute('aria-pressed', (state.extras || []).includes(b.dataset.v)));
   }
-  function rehacerPropuesta() { state.carnes = proponerCarnes(state, cfg); }
+  function rehacerPropuesta() {
+    state.carnesManual = false; state.protagonistas = null; state.guarniciones = null;
+  }
 
   function precioCorto(id) {
     const p = cfg.productos[id];
@@ -143,6 +188,7 @@
     const b = e.target.closest('.toggle'); if (!b) return;
     const id = b.dataset.v;
     state.carnes = state.carnes.includes(id) ? state.carnes.filter((x) => x !== id) : [...state.carnes, id];
+    state.carnesManual = true;
     actualizar();
   });
   $('#btnCatalog').addEventListener('click', () => {
@@ -151,23 +197,48 @@
     $('#btnCatalog').textContent = cat.hidden ? 'Añadir del catálogo' : 'Cerrar catálogo';
   });
   $('#picked').addEventListener('click', (e) => {
+    const star = e.target.closest('.pk-star');
+    if (star) {
+      const id = star.dataset.v;
+      let prot = [...ultimo.protagonistas];
+      if (prot.includes(id)) prot = prot.filter((x) => x !== id);
+      else {
+        prot.push(id);
+        while (prot.length > maxProtagonistas(state, cfg)) prot.shift();
+      }
+      state.protagonistas = prot;
+      state.carnesManual = true;
+      actualizar();
+      return;
+    }
     const b = e.target.closest('.pk-remove'); if (!b) return;
     state.carnes = state.carnes.filter((x) => x !== b.dataset.v);
+    state.carnesManual = true;
     actualizar();
   });
 
+  const ETIQUETA = { protagonista: 'Principal', secundario: '', picoteo: 'Picoteo', mar: 'Picoteo' };
+  const ORDEN = { protagonista: 0, secundario: 1, picoteo: 2, mar: 3 };
   function pintarCarnes(r) {
     const porId = Object.fromEntries(r.lineas.map((l) => [l.id, l]));
+    const info = Object.fromEntries(r.carne.map((c) => [c.id, c]));
     const list = $('#picked');
     if (!state.carnes.length) {
       list.innerHTML = '<li class="picked-empty">Sin carne. Añade algo del catálogo o cambia el estilo.</li>';
     } else {
-      list.innerHTML = state.carnes.map((id) => {
-        const l = porId[id];
+      const ids = [...state.carnes].sort((a, b) => (ORDEN[(info[a] || {}).papel] ?? 9) - (ORDEN[(info[b] || {}).papel] ?? 9));
+      list.innerHTML = ids.map((id) => {
+        const l = porId[id]; const c = info[id] || {};
         const kg = l ? (l.kgAprox ?? l.cantidad) : 0;
         const det = l ? (l.kgAprox ? `${num(l.cantidad, 0)} uds · ≈${num(kg, 1)} kg` : `${num(kg)} kg`) : '—';
-        return `<li><span><span class="pk-name">${esc(cfg.productos[id].nombre)}</span><span class="pk-kg">${det}</span></span>` +
-          `<button type="button" class="pk-remove" data-v="${id}" aria-label="Quitar ${esc(cfg.productos[id].nombre)}">×</button></li>`;
+        const main = c.papel === 'protagonista';
+        const tag = ETIQUETA[c.papel] ? `<span class="pk-tag${main ? ' main' : ''}">${ETIQUETA[c.papel]}</span>` : '';
+        const pct = c.pct ? ` · ${Math.round(c.pct * 100)} %` : '';
+        const nombre = esc(cfg.productos[id].nombre);
+        const esMar = cfg.carnes.find((x) => x.id === id).papel === 'mar';
+        const estrella = esMar ? '' : `<button type="button" class="pk-star" data-v="${id}" aria-pressed="${main}" aria-label="${main ? 'Quitar como plato principal' : 'Marcar como plato principal'}: ${nombre}" title="${main ? 'Plato principal' : 'Marcar como plato principal'}">${main ? '★' : '☆'}</button>`;
+        return `<li class="${main ? 'is-main' : ''}">${estrella}<span class="pk-body"><span class="pk-name">${nombre}</span>${tag}<span class="pk-kg">${det}${pct}</span></span>` +
+          `<button type="button" class="pk-remove" data-v="${id}" aria-label="Quitar ${nombre}">×</button></li>`;
       }).join('');
     }
     $('#pickedKg').textContent = r.resumen.kgCarneCompra ? `${num(r.resumen.kgCarneCompra, 1)} kg en total` : '';
@@ -176,10 +247,10 @@
   }
 
   // ---------- Ticket ----------
-  const hoy = new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date());
+  const fechaCorta = (iso) => { try { return new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(iso + 'T12:00:00')); } catch (e) { return iso; } };
   function pintarTicket(r) {
     const R = r.resumen;
-    $('#tSub').textContent = `Barbacoa · ${R.personas} ${R.personas === 1 ? 'persona' : 'personas'} · ${hoy}`;
+    $('#tSub').textContent = `Barbacoa · ${R.personas} ${R.personas === 1 ? 'persona' : 'personas'} · ${fechaCorta(state.fecha)}`;
     $('#tKpis').innerHTML = [
       [`${num(R.kgCarneCompra, 1)}`, 'kg de carne'],
       [`${num(R.latasCerveza, 0)}`, 'latas cerveza'],
@@ -190,8 +261,12 @@
       $('#tBody').innerHTML = '<p class="t-empty">Añade invitados para ver la lista.</p>';
     } else {
       $('#tBody').innerHTML = cfg.grupos.map((g) => {
-        const ls = r.lineas.filter((l) => l.grupo === g.id);
+        let ls = r.lineas.filter((l) => l.grupo === g.id);
         if (!ls.length) return '';
+        if (g.id === 'carniceria') {
+          const papel = Object.fromEntries(r.carne.map((c) => [c.id, c.papel]));
+          ls = [...ls].sort((a, b) => (ORDEN[papel[a.id]] ?? 9) - (ORDEN[papel[b.id]] ?? 9));
+        }
         return `<div class="t-group"><h4>${esc(g.nombre.toUpperCase())}</h4>${ls.map(lineaHTML).join('')}</div>`;
       }).join('');
     }
@@ -206,6 +281,10 @@
         `(≈${num(av.litrosPorAdulto, 1)} L de cerveza cada uno). Es mucho: compra una parte y deja el resto para una segunda ronda si hace falta. ` +
         `Y quien conduzca, cero alcohol.</p>`;
     }
+    const dp = r.avisos.find((a) => a.tipo === 'dos-parrillas');
+    const cons = $('#tConsejo');
+    cons.hidden = !dp;
+    if (dp) cons.innerHTML = `<b>CONSEJO</b><p>Con ${dp.personas} personas, mejor dos parrillas o asar por turnos: una parrilla normal da para unas 12 personas por tanda.</p>`;
     $('#mbTotal').textContent = `Total ${eur.format(R.total)}`;
     $('#btnWa').href = 'https://wa.me/?text=' + encodeURIComponent(textoLista(r));
   }
@@ -236,7 +315,8 @@
 
   function textoLista(r) {
     const R = r.resumen;
-    const out = [`🛒 Parrillómetro · Barbacoa para ${R.personas}`, ''];
+    const out = [`🛒 Parrillómetro · Barbacoa para ${R.personas} · ${fechaCorta(state.fecha)}`, ''];
+    if (r.protagonistas.length) out.push(`Plato principal: ${r.protagonistas.map((id) => cfg.productos[id].nombre).join(' y ')}`, '');
     cfg.grupos.forEach((g) => {
       const ls = r.lineas.filter((l) => l.grupo === g.id); if (!ls.length) return;
       out.push(`*${g.nombre}*`);
@@ -280,14 +360,13 @@
   }));
 
   // ---------- Historial ----------
-  const fechaHoyISO = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 10); };
   const fechaLarga = (iso) => { try { return new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(iso + 'T12:00:00')); } catch (e) { return iso; } };
   const guardarHist = () => { if (!escribir(KEY_HIST, historial)) toast('Este navegador no permite guardar datos'); };
 
   function abrirGuardar() {
     const orig = historial.find((h) => h.id === origenId);
     $('#gNombre').value = orig ? orig.nombre : `Barbacoa de ${ultimo.resumen.personas}`;
-    $('#gFecha').value = orig ? orig.fecha : fechaHoyISO();
+    $('#gFecha').value = orig ? orig.fecha : (state.fecha || fechaHoyISO());
     $('#gNotas').value = orig ? (orig.notas || '') : '';
     $('#gActualizar').hidden = !orig;
     if (orig) $('#gActualizar').textContent = `Actualizar «${orig.nombre}»`;
@@ -360,16 +439,23 @@
   // ---------- Ciclo ----------
   const NOTA_EJEMPLO = $('#sampleNote').textContent;
   function actualizar(guardarCambios = true) {
+    // Propuestas automáticas mientras el usuario no las toque.
+    if (!state.carnesManual) state.carnes = proponerCarnes(state, cfg);
+    if (!state.pctManual) state.pctCerveza = sugerirMezcla(state, cfg);
     ultimo = calcular(state, cfg);
+    pintarMezcla();
+    pintarFecha(ultimo);
     pintarCarnes(ultimo);
+    pintarGuarniciones(ultimo);
     pintarTicket(ultimo);
     $('#btnReset').hidden = !Object.keys(state.precios).length;
     if (guardarCambios) guardar();
   }
   function init() {
     ['adultos', 'adolescentes', 'ninos', 'vegetarianos'].forEach((f) => { $('#' + f).value = state[f]; });
-    slider.value = 100 - state.pctCerveza; pintarMezcla();
+    $('#fecha').value = state.fecha || fechaHoyISO();
     $('#carbon').checked = state.carbon !== false; $('#menaje').checked = state.menaje !== false;
+    $('#aperitivo').checked = state.aperitivo !== false;
     $('#sampleNote').textContent = desdeGuardado
       ? 'Hemos recuperado tu última barbacoa. Se queda guardada en este navegador hasta que la borres.'
       : NOTA_EJEMPLO;

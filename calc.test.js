@@ -2,16 +2,19 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const cfg = require('./config.js');
-const { calcular, redondearArriba, proponerCarnes } = require('./calc.js');
+const { calcular, redondearArriba, proponerCarnes, proponerGuarniciones, sugerirMezcla, temporadaDe } = require('./calc.js');
 
 const carnesDefecto = proponerCarnes(cfg.ejemplo, cfg);
 const linea = (r, id) => r.lineas.find((l) => l.id === id);
 
 // Caso de referencia: la hoja de cálculo original (23 adultos, 6 adolescentes,
 // 12 niños, barbacoa de 8 horas).
+// Sin guarniciones, para comparar con la hoja (que no las tenía).
 const excel = {
   ...cfg.ejemplo, tiempo: 'agradable', carnes: carnesDefecto,
+  guarniciones: [], fecha: '2026-06-20', pctCerveza: 85,
 };
+const kgDe = (r, id) => { const c = r.carne.find((x) => x.id === id); return c ? c.kg : 0; };
 
 test('reproduce los kilos de carne de la hoja original (12,92 kg con duración de referencia)', () => {
   const r = calcular({ ...excel, duracion: 'tarde' }, cfg);
@@ -118,14 +121,14 @@ test('la propuesta mixta-media coincide con las carnes de la hoja original', () 
 });
 
 test('los extras se añaden sin duplicar', () => {
-  const p = proponerCarnes({ estilo: 'espanola', presupuesto: 'premium', extras: ['iberico'] }, cfg);
+  const p = proponerCarnes({ adultos: 20, estilo: 'espanola', presupuesto: 'premium', extras: ['iberico'] }, cfg);
   assert.equal(p.filter((id) => id === 'secreto').length, 1);
   assert.ok(p.includes('presa'));
 });
 
 test('el premium sale más caro que el económico', () => {
-  const eco = calcular({ ...excel, carnes: proponerCarnes({ estilo: 'mixta', presupuesto: 'economico' }, cfg) }, cfg);
-  const pre = calcular({ ...excel, carnes: proponerCarnes({ estilo: 'mixta', presupuesto: 'premium' }, cfg) }, cfg);
+  const eco = calcular({ ...excel, carnes: proponerCarnes({ ...excel, estilo: 'mixta', presupuesto: 'economico' }, cfg) }, cfg);
+  const pre = calcular({ ...excel, carnes: proponerCarnes({ ...excel, estilo: 'mixta', presupuesto: 'premium' }, cfg) }, cfg);
   const carne = (r) => r.lineas.filter((l) => l.grupo === 'carniceria').reduce((s, l) => s + l.coste, 0);
   assert.ok(carne(pre) > carne(eco) * 1.3);
 });
@@ -139,7 +142,133 @@ test('aviso solo con fiestas del pueblo y hasta que nos echen', () => {
   const combos = [];
   for (const sed of cfg.sed) for (const dur of cfg.duracion) {
     const r = calcular({ ...excel, sed: sed.id, duracion: dur.id }, cfg);
-    if (r.avisos.length) combos.push(`${sed.id}/${dur.id}`);
+    if (r.avisos.some((a) => a.tipo === 'exceso-alcohol')) combos.push(`${sed.id}/${dur.id}`);
   }
   assert.deepEqual(combos, ['pueblo/larga']);
+});
+
+// ---------- v2: reglas del Manual del Parrillómetro ----------
+const cena10 = { ...excel, adultos: 8, adolescentes: 0, ninos: 0, presupuesto: 'premium', estilo: 'mixta', duracion: 'tarde' };
+
+test('premium: el protagonista (chuletón) se lleva al menos el 40 % de la carne', () => {
+  const carnes = proponerCarnes(cena10, cfg);
+  const r = calcular({ ...cena10, carnes }, cfg);
+  assert.deepEqual(r.protagonistas, ['chuleton']);
+  const c = r.carne.find((x) => x.id === 'chuleton');
+  assert.ok(c.pct >= 0.4, `chuletón ${c.pct}`);
+});
+
+test('sin protagonista (económico o medio) nadie pasa del 35 %', () => {
+  const r = calcular(excel, cfg);
+  assert.deepEqual(r.protagonistas, []);
+  r.carne.forEach((c) => assert.ok(c.pct < 0.35, `${c.id} ${c.pct}`));
+});
+
+test('el usuario puede elegir el protagonista o quitarlo', () => {
+  const carnes = proponerCarnes(cena10, cfg);
+  const elegido = calcular({ ...cena10, carnes, protagonistas: ['costillas'] }, cfg);
+  assert.deepEqual(elegido.protagonistas, ['costillas']);
+  assert.equal(elegido.carne.find((x) => x.id === 'costillas').papel, 'protagonista');
+  assert.equal(elegido.carne.find((x) => x.id === 'chuleton').papel, 'secundario');
+  const ninguno = calcular({ ...cena10, carnes, protagonistas: [] }, cfg);
+  assert.deepEqual(ninguno.protagonistas, []);
+});
+
+test('los niños no cuentan para el protagonista', () => {
+  const carnes = ['chuleton', 'costillas', 'chorizo'];
+  const sin = calcular({ ...cena10, carnes }, cfg);
+  const con = calcular({ ...cena10, ninos: 10, carnes }, cfg);
+  assert.ok(Math.abs(kgDe(con, 'chuleton') - kgDe(sin, 'chuleton')) <= 0.25);
+  assert.ok(kgDe(con, 'costillas') > kgDe(sin, 'costillas'));
+});
+
+test('hasta 25 personas un protagonista; en grupos grandes, dos si son de categoría', () => {
+  const carnes = ['chuleton', 'chuletillas', 'secreto', 'chorizo'];
+  assert.equal(calcular({ ...cena10, carnes }, cfg).protagonistas.length, 1);
+  const grande = calcular({ ...excel, carnes }, cfg);
+  assert.deepEqual([...grande.protagonistas].sort(), ['chuletillas', 'chuleton']);
+});
+
+test('el rendimiento se nota: el chuletón pide más crudo que un entrecot', () => {
+  const a = calcular({ ...cena10, carnes: ['chuleton', 'chorizo'] }, cfg);
+  const b = calcular({ ...cena10, carnes: ['entrecot', 'chorizo'] }, cfg);
+  assert.ok(kgDe(a, 'chuleton') > kgDe(b, 'entrecot'));
+});
+
+test('grupos pequeños: como mucho 4 cortes y 1 embutido', () => {
+  const p = proponerCarnes({ ...cena10, estilo: 'espanola', presupuesto: 'medio' }, cfg);
+  assert.ok(p.length <= 4, p.join());
+  assert.equal(p.filter((id) => cfg.carnes.find((c) => c.id === id).papel === 'picoteo').length, 1);
+});
+
+test('barbacoa corta: fuera lo que tarda más de media hora', () => {
+  const p = proponerCarnes({ ...excel, duracion: 'rato' }, cfg);
+  p.forEach((id) => assert.ok(!cfg.carnes.find((c) => c.id === id).lento, id));
+});
+
+test('con muchos niños se asegura algo fácil para ellos', () => {
+  const p = proponerCarnes({ ...excel, estilo: 'espanola', presupuesto: 'premium' }, cfg);
+  assert.ok(p.some((id) => cfg.carnes.find((c) => c.id === id).infantil));
+});
+
+test('temporada deducida de la fecha', () => {
+  assert.equal(temporadaDe('2026-07-15', cfg), 'verano');
+  assert.equal(temporadaDe('2026-10-01', cfg), 'otono');
+  assert.equal(temporadaDe('2027-01-10', cfg), 'invierno');
+  assert.ok(proponerGuarniciones({ estilo: 'espanola', fecha: '2026-07-15' }, cfg).includes('padron'));
+  assert.ok(!proponerGuarniciones({ estilo: 'espanola', fecha: '2026-11-15' }, cfg).includes('padron'));
+});
+
+test('dos o más guarniciones de brasa: la carne baja un 10 % y cada guarnición al 70 %', () => {
+  const sin = calcular(excel, cfg).resumen.kgCarne;
+  const una = calcular({ ...excel, guarniciones: ['patatas'] }, cfg);
+  const dos = calcular({ ...excel, guarniciones: ['patatas', 'pimientosRojos'] }, cfg);
+  assert.equal(una.resumen.kgCarne.toFixed(2), sin.toFixed(2));
+  assert.equal((dos.resumen.kgCarne / sin).toFixed(2), '0.90');
+  const patUna = una.lineas.find((l) => l.id === 'patatas').necesidad;
+  const patDos = dos.lineas.find((l) => l.id === 'patatas').necesidad;
+  assert.equal((patDos / patUna).toFixed(2), '0.70');
+});
+
+test('la ensalada no reduce la carne ni se reduce', () => {
+  const r = calcular({ ...excel, guarniciones: ['patatas', 'ensalada'] }, cfg);
+  assert.equal(r.resumen.kgCarne.toFixed(2), calcular(excel, cfg).resumen.kgCarne.toFixed(2));
+});
+
+test('aperitivo opcional', () => {
+  assert.ok(calcular(excel, cfg).lineas.find((l) => l.id === 'patatasFritas'));
+  assert.equal(calcular({ ...excel, aperitivo: false }, cfg).lineas.find((l) => l.id === 'patatasFritas'), undefined);
+});
+
+test('salsas según el menú', () => {
+  const vac = calcular({ ...cena10, carnes: ['chuleton', 'chorizo'] }, cfg);
+  assert.ok(vac.lineas.find((l) => l.id === 'chimichurri'));
+  assert.ok(vac.lineas.find((l) => l.id === 'alioli'));
+  const ame = calcular({ ...cena10, estilo: 'americana', carnes: ['hamburguesa'] }, cfg);
+  assert.ok(ame.lineas.find((l) => l.id === 'salsasAmericanas'));
+  assert.equal(ame.lineas.find((l) => l.id === 'alioli'), undefined);
+});
+
+test('carbón: al menos 1 kg por kg de carne', () => {
+  const r = calcular(excel, cfg);
+  assert.ok(r.lineas.find((l) => l.id === 'carbon').cantidad >= r.resumen.kgCarneCompra);
+});
+
+test('más de 25 personas: consejo de dos parrillas', () => {
+  assert.ok(calcular(excel, cfg).avisos.some((a) => a.tipo === 'dos-parrillas'));
+  assert.ok(!calcular(cena10, cfg).avisos.some((a) => a.tipo === 'dos-parrillas'));
+});
+
+test('mezcla de bebida sugerida según el menú', () => {
+  assert.equal(sugerirMezcla({ ...cena10, carnes: ['chuleton'] }, cfg), 55);
+  assert.equal(sugerirMezcla({ ...cena10, carnes: ['presa'] }, cfg), 65);
+  assert.equal(sugerirMezcla({ ...cena10, estilo: 'americana', carnes: ['hamburguesa'] }, cfg), 90);
+  assert.equal(sugerirMezcla({ ...excel }, cfg), 80);
+});
+
+test('algo de mar va fuera del reparto', () => {
+  const sin = calcular({ ...cena10, carnes: ['chuleton', 'chorizo'] }, cfg);
+  const con = calcular({ ...cena10, carnes: ['chuleton', 'chorizo', 'langostinos'] }, cfg);
+  assert.equal(kgDe(con, 'chuleton'), kgDe(sin, 'chuleton'));
+  assert.ok(kgDe(con, 'langostinos') > 0);
 });

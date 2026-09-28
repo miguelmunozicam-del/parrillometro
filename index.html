@@ -24,7 +24,7 @@
 
   <main class="layout">
     <form id="form" class="questions" autocomplete="off">
-      <p class="sample-note" id="sampleNote">Ejemplo cargado: barbacoa de junio con 41 invitados. Cambia las respuestas y la lista se recalcula al momento.</p>
+      <p class="sample-note" id="sampleNote">Ejemplo cargado: barbacoa de 41 invitados. Cambia las respuestas y la lista se recalcula al momento.</p>
 
       <section class="q">
         <h2>¿Cuántos vais a ser?</h2>
@@ -54,6 +54,15 @@
       </section>
 
       <section class="q">
+        <h2>¿Cuándo es?</h2>
+        <div class="when">
+          <label for="fecha" class="sr-only">Fecha de la barbacoa</label>
+          <input id="fecha" type="date">
+          <p class="when-read" id="temporadaRead"></p>
+        </div>
+      </section>
+
+      <section class="q">
         <h2>¿Qué tal andan de apetito?</h2>
         <div class="chips" data-field="apetito" role="radiogroup" aria-label="Apetito"></div>
       </section>
@@ -63,7 +72,7 @@
         <div class="mix">
           <div class="mix-ends"><span>Todo cerveza</span><span>Todo vino</span></div>
           <input id="pctVino" type="range" min="0" max="100" step="5" aria-label="Reparto entre cerveza y vino">
-          <p class="mix-read" id="mixRead"></p>
+          <p class="mix-read"><span id="mixRead"></span> <button type="button" class="linkish" id="btnMezcla" hidden></button></p>
         </div>
         <h3>¿Y cuánto beben?</h3>
         <div class="chips" data-field="sed" role="radiogroup" aria-label="Cuánto beben"></div>
@@ -91,11 +100,18 @@
             <span class="picked-kg" id="pickedKg"></span>
           </div>
           <ul class="picked-list" id="picked"></ul>
-          <p class="picked-note" id="pickedNote">Te proponemos esto según tus respuestas. Quita lo que no quieras o añade del catálogo; el reparto de kilos se ajusta solo.</p>
+          <p class="picked-note" id="pickedNote">La estrella marca el plato principal, que se lleva la mitad de la carne. Toca otra estrella para cambiarlo o quítala para repartir sin protagonista. Quita cortes o añade del catálogo: los kilos se ajustan solos.</p>
           <button type="button" class="btn catalog-btn" id="btnCatalog" aria-expanded="false" aria-controls="catalog">Añadir del catálogo</button>
           <div class="catalog" id="catalog" hidden></div>
         </div>
+      </section>
+
+      <section class="q">
+        <h2>¿Y de acompañamiento?</h2>
+        <p class="q-note" id="guarnNote"></p>
+        <div class="toggles guarn" id="guarn" aria-label="Guarniciones"></div>
         <div class="checks">
+          <label class="check"><input type="checkbox" id="aperitivo"> Aperitivo para la espera (patatas fritas y aceitunas)</label>
           <label class="check"><input type="checkbox" id="carbon"> Hay que comprar carbón</label>
           <label class="check"><input type="checkbox" id="menaje"> Platos, vasos y servilletas</label>
         </div>
@@ -115,6 +131,7 @@
           <div class="t-row"><span id="tPorLabel">Por adulto</span><span id="tPor"></span></div>
         </div>
         <div class="t-aviso" id="tAviso" role="note" hidden></div>
+        <div class="t-consejo" id="tConsejo" role="note" hidden></div>
         <p class="t-foot">Precios orientativos. Toca una línea para ajustar su precio o buscarla en tu súper.</p>
       </div>
       <div class="actions">
