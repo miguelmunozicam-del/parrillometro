@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Parrillómetro</title>
+<meta name="description" content="Calcula cuánta comida y bebida comprar para tu barbacoa según los invitados y sus gustos.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@400;600;700;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <svg class="logo" viewBox="0 0 40 40" aria-hidden="true"><rect x="3" y="15" width="34" height="4" rx="2" fill="currentColor"/><path d="M6 21h28l-3 9a4 4 0 0 1-3.8 3H12.8A4 4 0 0 1 9 30z" fill="currentColor" opacity=".85"/><path d="M13 12c-2-3 2-4 0-7M20 12c-2-3 2-4 0-7M27 12c-2-3 2-4 0-7" stroke="var(--accent)" stroke-width="2.4" fill="none" stroke-linecap="round"/></svg>
+      <div>
+        <h1>Parrillómetro</h1>
+        <p class="tagline">Lo que hay que comprar para tu barbacoa. Que no falte de nada y que no sobre medio kilo de morcilla.</p>
+      </div>
+    </div>
+  </header>
+
+  <main class="layout">
+    <form id="form" class="questions" autocomplete="off">
+      <p class="sample-note" id="sampleNote">Ejemplo cargado: barbacoa de junio con 41 invitados. Cambia las respuestas y la lista se recalcula al momento.</p>
+
+      <section class="q">
+        <h2>¿Cuántos vais a ser?</h2>
+        <div class="people">
+          <div class="stepper" data-field="adultos">
+            <span class="st-label">Adultos</span>
+            <div class="st-ctrl"><button type="button" class="st-btn" data-d="-1" aria-label="Quitar un adulto">−</button><input id="adultos" type="number" inputmode="numeric" min="0" max="500" aria-label="Adultos"><button type="button" class="st-btn" data-d="1" aria-label="Añadir un adulto">+</button></div>
+          </div>
+          <div class="stepper" data-field="adolescentes">
+            <span class="st-label">Adolescentes <small>12 a 17 años</small></span>
+            <div class="st-ctrl"><button type="button" class="st-btn" data-d="-1" aria-label="Quitar un adolescente">−</button><input id="adolescentes" type="number" inputmode="numeric" min="0" max="500" aria-label="Adolescentes"><button type="button" class="st-btn" data-d="1" aria-label="Añadir un adolescente">+</button></div>
+          </div>
+          <div class="stepper" data-field="ninos">
+            <span class="st-label">Niños <small>hasta 11 años</small></span>
+            <div class="st-ctrl"><button type="button" class="st-btn" data-d="-1" aria-label="Quitar un niño">−</button><input id="ninos" type="number" inputmode="numeric" min="0" max="500" aria-label="Niños"><button type="button" class="st-btn" data-d="1" aria-label="Añadir un niño">+</button></div>
+          </div>
+          <div class="stepper minor" data-field="vegetarianos">
+            <span class="st-label">De ellos, vegetarianos</span>
+            <div class="st-ctrl"><button type="button" class="st-btn" data-d="-1" aria-label="Quitar un vegetariano">−</button><input id="vegetarianos" type="number" inputmode="numeric" min="0" max="500" aria-label="Vegetarianos"><button type="button" class="st-btn" data-d="1" aria-label="Añadir un vegetariano">+</button></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="q">
+        <h2>¿Cuánto va a durar?</h2>
+        <div class="chips" data-field="duracion" role="radiogroup" aria-label="Duración"></div>
+      </section>
+
+      <section class="q">
+        <h2>¿Qué tal andan de apetito?</h2>
+        <div class="chips" data-field="apetito" role="radiogroup" aria-label="Apetito"></div>
+      </section>
+
+      <section class="q">
+        <h2>¿Qué beben los adultos?</h2>
+        <div class="mix">
+          <div class="mix-ends"><span>Todo cerveza</span><span>Todo vino</span></div>
+          <input id="pctVino" type="range" min="0" max="100" step="5" aria-label="Reparto entre cerveza y vino">
+          <p class="mix-read" id="mixRead"></p>
+        </div>
+        <h3>¿Y cuánto beben?</h3>
+        <div class="chips" data-field="sed" role="radiogroup" aria-label="Cuánto beben"></div>
+        <h3>¿Alguien no toma alcohol?</h3>
+        <div class="chips small" data-field="sinAlcohol" role="radiogroup" aria-label="Adultos que no toman alcohol"></div>
+      </section>
+
+      <section class="q">
+        <h2>¿Qué tiempo va a hacer?</h2>
+        <div class="chips" data-field="tiempo" role="radiogroup" aria-label="Tiempo"></div>
+      </section>
+
+      <section class="q">
+        <h2>¿Qué ponemos en la parrilla?</h2>
+        <h3 class="first">Presupuesto</h3>
+        <div class="chips" data-field="presupuesto" role="radiogroup" aria-label="Presupuesto"></div>
+        <h3>Estilo</h3>
+        <div class="chips" data-field="estilo" role="radiogroup" aria-label="Estilo"></div>
+        <h3>¿Algún extra? <small>Puedes marcar varios</small></h3>
+        <div class="toggles" id="extras" aria-label="Extras"></div>
+
+        <div class="picked">
+          <div class="picked-head">
+            <h3>Tu parrilla</h3>
+            <span class="picked-kg" id="pickedKg"></span>
+          </div>
+          <ul class="picked-list" id="picked"></ul>
+          <p class="picked-note" id="pickedNote">Te proponemos esto según tus respuestas. Quita lo que no quieras o añade del catálogo; el reparto de kilos se ajusta solo.</p>
+          <button type="button" class="btn catalog-btn" id="btnCatalog" aria-expanded="false" aria-controls="catalog">Añadir del catálogo</button>
+          <div class="catalog" id="catalog" hidden></div>
+        </div>
+        <div class="checks">
+          <label class="check"><input type="checkbox" id="carbon"> Hay que comprar carbón</label>
+          <label class="check"><input type="checkbox" id="menaje"> Platos, vasos y servilletas</label>
+        </div>
+      </section>
+    </form>
+
+    <aside class="ticket-col" id="lista">
+      <div class="ticket" id="ticket" aria-live="polite">
+        <div class="t-head">
+          <p class="t-shop">PARRILLÓMETRO</p>
+          <p class="t-sub" id="tSub"></p>
+        </div>
+        <div class="t-kpis" id="tKpis"></div>
+        <div id="tBody"></div>
+        <div class="t-total">
+          <div class="t-row big"><span>TOTAL ESTIMADO</span><span id="tTotal"></span></div>
+          <div class="t-row"><span id="tPorLabel">Por adulto</span><span id="tPor"></span></div>
+        </div>
+        <div class="t-aviso" id="tAviso" role="note" hidden></div>
+        <p class="t-foot">Precios orientativos. Toca una línea para ajustar su precio o buscarla en tu súper.</p>
+      </div>
+      <div class="actions">
+        <button type="button" class="btn primary" id="btnCopy">Copiar lista</button>
+        <a class="btn" id="btnWa" href="#" target="_blank" rel="noopener">Enviar por WhatsApp</a>
+        <button type="button" class="btn" id="btnPrint">Imprimir</button>
+        <button type="button" class="btn ghost" id="btnReset">Restablecer precios</button>
+        <button type="button" class="btn accent" id="btnGuardar" aria-expanded="false" aria-controls="guardarForm">Guardar barbacoa</button>
+      </div>
+
+      <form class="save" id="guardarForm" hidden>
+        <label for="gNombre">Nombre</label>
+        <input id="gNombre" type="text" maxlength="80" placeholder="Barbacoa de San Juan">
+        <label for="gFecha">Fecha del evento</label>
+        <input id="gFecha" type="date">
+        <label for="gNotas">Notas <small>qué sobró, qué faltó… para la próxima</small></label>
+        <textarea id="gNotas" rows="3" maxlength="600" placeholder="Sobraron 2 packs de cerveza; las costillas volaron."></textarea>
+        <div class="save-acts">
+          <button type="submit" class="btn primary" id="gActualizar" hidden>Actualizar</button>
+          <button type="submit" class="btn primary" id="gNueva">Guardar</button>
+          <button type="button" class="btn ghost" id="gCancelar">Cancelar</button>
+        </div>
+      </form>
+      <p class="toast" id="toast" role="status"></p>
+
+      <section class="hist" aria-labelledby="histTitle">
+        <h2 id="histTitle">Mis barbacoas <span id="histCount"></span></h2>
+        <p class="hist-empty" id="histVacio">Aún no has guardado ninguna. Pulsa «Guardar barbacoa» para tener un histórico con lo que compraste y cómo fue.</p>
+        <ul class="hist-list" id="histList"></ul>
+        <p class="hist-note">Se guardan solo en este navegador. Nadie más las ve y no se borran salvo que tú lo hagas.</p>
+        <div class="hist-danger">
+          <button type="button" class="btn ghost" id="btnNuevo">Empezar de nuevo (borra la barbacoa en curso)</button>
+          <button type="button" class="btn ghost" id="btnBorrarHist" hidden>Borrar todo el historial</button>
+        </div>
+      </section>
+    </aside>
+  </main>
+
+  <footer class="foot">
+    <p>Cálculos orientativos basados en consumos medios. Bebe con moderación y, si conduces, cero alcohol. Código abierto en GitHub.</p>
+  </footer>
+</div>
+
+<a class="mobile-bar" href="#lista" id="mobileBar"><span id="mbTotal"></span><span>Ver la lista ↓</span></a>
+
+<script src="js/config.js"></script>
+<script src="js/calc.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
