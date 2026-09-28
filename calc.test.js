@@ -1,8 +1,8 @@
 // Ejecutar con: npm test
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const cfg = require('../js/config.js');
-const { calcular, redondearArriba, proponerCarnes } = require('../js/calc.js');
+const cfg = require('./config.js');
+const { calcular, redondearArriba, proponerCarnes } = require('./calc.js');
 
 const carnesDefecto = proponerCarnes(cfg.ejemplo, cfg);
 const linea = (r, id) => r.lineas.find((l) => l.id === id);

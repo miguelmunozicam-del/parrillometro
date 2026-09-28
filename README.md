@@ -33,7 +33,7 @@ Abre la web publicada en GitHub Pages (ver más abajo) o descarga el repositorio
 
 ## Adaptarla a tu gusto
 
-Todo lo que se puede ajustar está en **[`js/config.js`](js/config.js)**, comentado:
+Todo lo que se puede ajustar está en **[`config.js`](config.js)**, comentado:
 
 | Qué | Dónde | Valor por defecto |
 |---|---|---|
@@ -65,11 +65,12 @@ Los precios son **orientativos** y editables. La app no consulta las tiendas en 
 ## Desarrollo
 
 ```
-js/config.js   ratios, preguntas, catálogo y precios
-js/calc.js     motor de cálculo (función pura, sin DOM)
-js/app.js      interfaz
-css/styles.css estilos (modo claro y oscuro)
-tests/         tests del motor
+index.html     la página
+config.js      ratios, preguntas, catálogo y precios
+calc.js        motor de cálculo (función pura, sin DOM)
+app.js         interfaz
+styles.css     estilos (modo claro y oscuro)
+calc.test.js   tests del motor
 ```
 
 Ejecuta los tests con Node 18 o superior:

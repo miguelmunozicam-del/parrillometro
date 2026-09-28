@@ -4,7 +4,7 @@
   "description": "Calculadora de la compra para barbacoas y eventos: comida y bebida según invitados y preferencias.",
   "private": true,
   "scripts": {
-    "test": "node --test tests/calc.test.js"
+    "test": "node --test calc.test.js"
   },
   "license": "MIT"
 }
