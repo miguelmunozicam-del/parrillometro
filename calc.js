@@ -295,15 +295,19 @@
     return personasDe(input) > cfg.maxPersonasUnProtagonista ? 2 : 1;
   }
 
-  // Guarniciones por estilo, temporada, presupuesto y vegetarianos.
+  // Guarniciones por estilo, temporada, presupuesto y vegetarianos: como mucho dos.
   function proponerGuarniciones(input, cfg) {
     const t = temporadaDe(input.fecha, cfg);
     const gp = cfg.guarnicionPropuesta;
     const est = gp[input.estilo] || gp.mixta;
-    let lista = [...(est.base || []), ...(est[t] || [])];
-    if (input.presupuesto === 'premium') lista = lista.concat(gp.premium[t] || []);
-    if ((input.vegetarianos | 0) > 0) lista = lista.concat(gp.vegetarianos);
-    return [...new Set(lista)];
+    const segunda = [
+      ...((input.vegetarianos | 0) > 0 ? gp.vegetarianos : []),
+      ...(input.presupuesto === 'premium' && input.estilo !== 'americana' ? (gp.premium[t] || []) : []),
+      ...(est[t] || []),
+    ];
+    const base = est.base || [];
+    const lista = [...base.slice(0, 1), ...segunda, ...base.slice(1)];
+    return [...new Set(lista)].slice(0, cfg.maxGuarnicionesPropuestas);
   }
 
   // Mezcla cerveza/vino sugerida según el menú.

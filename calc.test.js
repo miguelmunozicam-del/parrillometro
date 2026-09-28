@@ -215,8 +215,8 @@ test('temporada deducida de la fecha', () => {
   assert.equal(temporadaDe('2026-07-15', cfg), 'verano');
   assert.equal(temporadaDe('2026-10-01', cfg), 'otono');
   assert.equal(temporadaDe('2027-01-10', cfg), 'invierno');
-  assert.ok(proponerGuarniciones({ estilo: 'espanola', fecha: '2026-07-15' }, cfg).includes('padron'));
-  assert.ok(!proponerGuarniciones({ estilo: 'espanola', fecha: '2026-11-15' }, cfg).includes('padron'));
+  assert.ok(proponerGuarniciones({ estilo: 'mixta', fecha: '2026-07-15' }, cfg).includes('padron'));
+  assert.ok(!proponerGuarniciones({ estilo: 'mixta', fecha: '2026-11-15' }, cfg).includes('padron'));
 });
 
 test('dos o más guarniciones de brasa: la carne baja un 10 % y cada guarnición al 70 %', () => {
@@ -271,4 +271,14 @@ test('algo de mar va fuera del reparto', () => {
   const con = calcular({ ...cena10, carnes: ['chuleton', 'chorizo', 'langostinos'] }, cfg);
   assert.equal(kgDe(con, 'chuleton'), kgDe(sin, 'chuleton'));
   assert.ok(kgDe(con, 'langostinos') > 0);
+});
+
+test('la app propone como mucho dos guarniciones', () => {
+  for (const estilo of ['espanola', 'americana', 'mixta']) for (const presupuesto of ['economico', 'medio', 'premium'])
+    for (const fecha of ['2026-01-10', '2026-04-10', '2026-07-10', '2026-10-10']) for (const vegetarianos of [0, 3]) {
+      const g = proponerGuarniciones({ estilo, presupuesto, fecha, vegetarianos }, cfg);
+      assert.ok(g.length >= 1 && g.length <= 2, `${estilo}/${presupuesto}/${fecha}: ${g}`);
+    }
+  assert.deepEqual(proponerGuarniciones({ estilo: 'espanola', presupuesto: 'medio', fecha: '2026-07-10' }, cfg), ['pimientosRojos', 'patatas']);
+  assert.ok(proponerGuarniciones({ estilo: 'espanola', vegetarianos: 2, fecha: '2026-07-10' }, cfg).includes('rodajas'));
 });

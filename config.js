@@ -214,13 +214,16 @@
       { id: 'ensalada', kgPorComensal: 0.12, brasa: false },
       { id: 'coleslaw', kgPorComensal: 0.1, brasa: false },
     ],
-    // Propuesta de guarnición por estilo y temporada (se deduce de la fecha del evento).
+    // Propuesta de guarnición: como mucho 2; el usuario añade o quita las que quiera.
+    // base = las dos de siempre del estilo. La segunda plaza la puede ocupar, por prioridad:
+    // una verdura para vegetarianos > una de premium de temporada > una de temporada del estilo.
+    maxGuarnicionesPropuestas: 2,
     guarnicionPropuesta: {
-      espanola: { base: ['pimientosRojos', 'patatas', 'ensalada'], verano: ['padron'], invierno: ['cebolletas'], primavera: ['cebolletas'] },
-      americana: { base: ['patatas', 'mazorcas', 'coleslaw'] },
-      mixta: { base: ['patatas', 'ensalada'], verano: ['padron'], otono: ['pimientosRojos'], invierno: ['pimientosRojos'], primavera: ['pimientosRojos'] },
+      espanola: { base: ['pimientosRojos', 'patatas'] },
+      americana: { base: ['patatas', 'mazorcas'] },
+      mixta: { base: ['patatas', 'pimientosRojos'], verano: ['padron'] },
       premium: { primavera: ['trigueros'], verano: ['champis'], otono: ['champis'], invierno: ['champis'] },
-      vegetarianos: ['rodajas', 'champis'],
+      vegetarianos: ['rodajas'],
     },
     temporadas: [
       { id: 'invierno', nombre: 'invierno', meses: [12, 1, 2] },
